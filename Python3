@@ -1,0 +1,46 @@
+import pandas as pd
+from fredapi import Fred
+import plotly.graph_objects as go
+
+# Replace 'your_api_key' with your FRED API key
+fred = Fred(api_key='your_api_key')
+
+# Download UK 2-year bond yield (monthly frequency)
+uk_bond_yield = pd.DataFrame(fred.get_series('GS2GBR'))
+
+# Download Germany 2-year bond yield (monthly frequency)
+de_bond_yield = pd.DataFrame(fred.get_series('GS2DE'))
+
+# Download the EUR/GBP exchange rate (monthly frequency)
+eur_gbp_exchange_rate = pd.DataFrame(fred.get_series('DEXCAUS'))
+
+# Merge the data and calculate the difference
+bond_yield_data = uk_bond_yield.merge(de_bond_yield, left_index=True, right_index=True, suffixes=('_UK', '_DE'))
+bond_yield_data['Difference'] = bond_yield_data['GS2GBR_UK'] - bond_yield_data['GS2DE_DE']
+bond_yield_data = bond_yield_data.merge(eur_gbp_exchange_rate, left_index=True, right_index=True)
+bond_yield_data.columns = ['UK_2Y', 'DE_2Y', 'Difference', 'EUR_GBP']
+
+# Create the plot
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(x=bond_yield_data.index, y=bond_yield_data['Difference'],
+                         name='2Y Bond Yield Difference (UK - DE)'))
+
+fig.add_trace(go.Scatter(x=bond_yield_data.index, y=bond_yield_data['EUR_GBP'],
+                         name='EUR/GBP Exchange Rate', yaxis='y2'))
+
+# Set up the plot layout
+fig.update_layout(
+    title='2-Year Bond Yields Difference (UK - DE) and EUR/GBP Exchange Rate',
+    xaxis_title='Date',
+    yaxis_title='2Y Bond Yield Difference (UK - DE)',
+    yaxis2=dict(
+        title='EUR/GBP Exchange Rate',
+        overlaying='y',
+        side='right'
+    ),
+    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+)
+
+# Show the plot
+fig.show()
